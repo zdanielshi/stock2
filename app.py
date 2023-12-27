@@ -20,6 +20,7 @@ start_date = st.date_input("Select a start date",
 # Process the ticker input from the user, and chop it off at 10
 user_tickers = [ticker.strip().upper() for ticker in ticker_input.split(',')][:10] # Takes only the first 10 tickers
 
+
 # Always include SPY and QQQ
 tickers = ['SPY', 'QQQ']
 tickers.extend(user_tickers)
