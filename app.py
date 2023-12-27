@@ -3,54 +3,85 @@ import streamlit as st
 import yfinance as yf
 import pandas as pd
 import altair as alt
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+import seaborn as sns
 
-# Set up the streamlit interface
-st.title("Stock return against indices") 
+# Set up the Streamlit interface
+st.title("Stock Return Comparison")
 
-# Get the ticker and the start date
-ticker = st.text_input("Enter a stock ticker", value="RELY")  # Default set to Apple
-start_date = st.date_input("Select a start date", value=pd.to_datetime("2023-01-01"))  # Default set to Jan 1, 2023
+# Get ticker and start date from user
+ticker_input = st.text_input("Enter stock ticker(s). Up to 10, separated by commas", 
+                            value = "RELY",
+                            help = "You can enter more than 10, but the app will only evaluate the first 10.")
+start_date = st.date_input("Select a start date",
+                            value = pd.to_datetime("2023-01-01"))
 
-# Define colors and line thickness
-colors = {
-    ticker: 'orange',
-    'SPY': 'grey',
-    'QQQ': 'lightblue'
-}
-line_thickness = {
-    ticker: 3,
-    'SPY': 1.5,
-    'QQQ': 1.5
-}
+# Process the ticker input from the user, and chop it off at 10
+user_tickers = [ticker.strip().upper() for ticker in ticker_input.split(',')][:10] # Takes only the first 10 tickers
 
-# Fetch the stock data
+# Always include SPY and QQQ
+tickers = ['SPY', 'QQQ']
+tickers.extend(user_tickers)
+
+# Define function to get ticker data
+def fetch_and_normalize_data(ticker, start_date):
+    data = yf.download(ticker, start=start_date)
+    data.reset_index(inplace = True)
+    data['Normalized Close'] = (data['Close'] - data['Close'].iloc[0]) / data['Close'].iloc[0]
+    return data
+
+# Function to get colors for user tickers
+def get_colors(n):
+    color_map = plt.cm.get_cmap('tab20', n)
+    return [color_map(i/n) for i in range(n)]  # Generate a list of colors
+
+# Generate a list of colors for the user-entered tickers
+color_list = get_colors(len(user_tickers))
+
+# Create a dictionary to map each ticker to its color
+colors_hex = {ticker: mcolors.to_hex(color_list[i]) for i, ticker in enumerate(user_tickers)}
+
+# Assign specific colors for SPY and QQQ
+colors_hex['SPY'] = 'black'
+colors_hex['QQQ'] = '#8B0000'  # Dark red
+
+# Seat the Seaborn style
+sns.set(style = "whitegrid")
+
+# Button to fetch data
 if st.button('Fetch Data'):
-    def fetch_and_normalize_data(ticker, start_date):
-        data = yf.download(ticker, start=start_date)
-        data.reset_index(inplace=True)  # Reset the index to turn 'Date' into a column
-        data['Normalized Close'] = (data['Close'] - data['Close'].iloc[0]) / data['Close'].iloc[0]
-        return data
-
-    tickers = [ticker, "SPY", "QQQ"]
     source = pd.DataFrame()
-    for entry in tickers:
-        data = fetch_and_normalize_data(entry, start_date)
-        data['Ticker'] = entry
-        source = pd.concat([source, data])
-
-    # Ensure Date is a datetime type for Altair
+    
+    # Fetch the data for each ticker
+    for ticker in tickers:
+        data = fetch_and_normalize_data(ticker, start_date)
+        if data is not None:
+            data['Ticker'] = ticker
+            source = pd.concat([source, data])
+    
     source['Date'] = pd.to_datetime(source['Date'])
 
-    # Altair Chart
-    chart = alt.Chart(source).mark_line().encode(
-        x='Date:T',
-        y='Normalized Close:Q',
-        color=alt.Color('Ticker:N', scale=alt.Scale(domain=list(colors.keys()), range=list(colors.values()))),
-        strokeWidth=alt.StrokeWidth('Ticker:N', scale=alt.Scale(domain=list(line_thickness.keys()), range=list(line_thickness.values())))
-    ).properties(
-        title='Stock Price Performance Comparison',
-        width=700,
-        height=400
-    )
+    # Create a Matplotlib figure
+    fig, ax = plt.subplots(figsize=(10, 6))
 
-    st.altair_chart(chart, use_container_width=True)
+    # Plot data for each user-entered ticker using Seaborn's color palette
+    palette = sns.color_palette("tab10", n_colors=len(user_tickers))
+    for i, ticker in enumerate(user_tickers):
+        ticker_data = source[source['Ticker'] == ticker]
+        ax.plot(ticker_data['Date'], ticker_data['Normalized Close'], label=ticker, color=palette[i])
+
+    # Plot data for SPY and QQQ with specific styles
+    for ticker in ['SPY', 'QQQ']:
+        ticker_data = source[source['Ticker'] == ticker]
+        color = 'black' if ticker == 'SPY' else '#8B0000'  # Black for SPY, Dark Red for QQQ
+        ax.plot(ticker_data['Date'], ticker_data['Normalized Close'], label=ticker, color=color, linewidth=4)
+
+    # Customize the chart
+    ax.set_title('Stock Price Performance Comparison')
+    ax.set_xlabel('Date')
+    ax.set_ylabel('Normalized Close')
+    ax.legend()
+
+    # Display the chart in Streamlit
+    st.pyplot(fig)
