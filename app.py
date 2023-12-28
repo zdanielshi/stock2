@@ -7,23 +7,11 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import seaborn as sns
 
-# Set up the Streamlit interface
-st.title("Stock Return Comparison")
-
-# Get ticker and start date from user
-ticker_input = st.text_input("Enter stock ticker(s). Up to 10, separated by commas", 
-                            value = "RELY",
-                            help = "You can enter more than 10, but the app will only evaluate the first 10.")
-start_date = st.date_input("Select a start date",
-                            value = pd.to_datetime("2023-01-01"))
-
-# Process the ticker input from the user, and chop it off at 10
-user_tickers = [ticker.strip().upper() for ticker in ticker_input.split(',')][:10] # Takes only the first 10 tickers
-
-
-# Always include SPY and QQQ
-tickers = ['SPY', 'QQQ']
-tickers.extend(user_tickers)
+# Define the function to load "About" content
+def load_about():
+    with open('about.txt', 'r') as file:
+        about_text = file.read()
+    return about_text
 
 # Define function to get ticker data
 def fetch_and_normalize_data(ticker, start_date):
@@ -36,6 +24,26 @@ def fetch_and_normalize_data(ticker, start_date):
 def get_colors(n):
     color_map = plt.cm.get_cmap('tab20', n)
     return [color_map(i/n) for i in range(n)]  # Generate a list of colors
+
+# Set up the Streamlit interface
+st.title("Stock returns comparison")
+
+about_section = load_about()
+st.sidebar.markdown(about_section, unsafe_allow_html = True)
+
+# Get ticker and start date from user
+ticker_input = st.text_input("Enter stock ticker(s). Up to 10, separated by commas", 
+                            value = "RELY",
+                            help = "You can enter more than 10, but the app will only evaluate the first 10.")
+start_date = st.date_input("Select a start date",
+                            value = pd.to_datetime("2023-01-01"))
+
+# Process the ticker input from the user, and chop it off at 10
+user_tickers = [ticker.strip().upper() for ticker in ticker_input.split(',')][:10] # Takes only the first 10 tickers
+
+# Always include SPY and QQQ
+tickers = ['SPY', 'QQQ']
+tickers.extend(user_tickers)
 
 # Generate a list of colors for the user-entered tickers
 color_list = get_colors(len(user_tickers))
