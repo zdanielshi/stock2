@@ -1,4 +1,4 @@
-*Why?*
+#### *Why?*
 
 I used to check my company's stock price constantly. Each rise and fall stirred my emotions. It was a rollercoaster.
 
@@ -9,5 +9,7 @@ The stock’s daily dance is just a small part of a bigger picture. So I wanted 
 It's about perspective – seeing beyond the immediate to grasp the larger story.
 
 [Roadmap](https://southquad.notion.site/Stock2-roadmap-b37372d68d214c31942fcd9e1ea09093)
+
+[South Quad LLC](https://www.southquad.com)
 
 *Note:* This app does not provide investment advice. This is for education purposes only.
